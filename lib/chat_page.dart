@@ -1,9 +1,11 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:math';
 import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_bluetooth_serial/flutter_bluetooth_serial.dart';
+import 'package:kronos_encrypted_chat/message_model.dart';
 import 'package:sizer/sizer.dart';
 
 class ChatPage extends StatefulWidget {
@@ -15,36 +17,37 @@ class ChatPage extends StatefulWidget {
   _ChatPage createState() => new _ChatPage();
 }
 
-class _Message {
-  int whom;
-  String text;
+// class _Message {
+//   int whom;
+//   String text;
 
-  _Message(this.whom, this.text);
-}
+//   _Message(this.whom, this.text);
+// }
 
 class _ChatPage extends State<ChatPage> {
   static final clientID = 0;
   BluetoothConnection? connection;
 
-  List<_Message> messages = List<_Message>.empty(growable: true);
+  List<Message> messages = List<Message>.empty(growable: true);
   String _messageBuffer = '';
 
-  final TextEditingController textEditingController =
-      new TextEditingController();
-  final ScrollController listScrollController = new ScrollController();
+  final TextEditingController textEditingController = TextEditingController();
+  final ScrollController listScrollController = ScrollController();
 
   bool isConnecting = true;
   bool get isConnected => (connection?.isConnected ?? false);
 
   bool isDisconnecting = false;
 
+  late int randomnum;
   @override
   void initState() {
     super.initState();
-
     BluetoothConnection.toAddress(widget.server.address).then((_connection) {
       print('Connected to the device');
+      randomnum = Random().nextInt(26);
       connection = _connection;
+      sendresult();
       setState(() {
         isConnecting = false;
         isDisconnecting = false;
@@ -72,6 +75,15 @@ class _ChatPage extends State<ChatPage> {
     });
   }
 
+  int sharedkeygen() {
+    int result = (pow(3, randomnum) % 17).toInt();
+    return result;
+  }
+
+  void sendresult() {
+    _sendMessage("${sharedkeygen()}");
+  }
+
   @override
   void dispose() {
     // Avoid memory leak (`setState` after dispose) and disconnect
@@ -93,7 +105,7 @@ class _ChatPage extends State<ChatPage> {
             child: Text(
                 (text) {
                   return text == '/shrug' ? '¯\\_(ツ)_/¯' : text;
-                }(_message.text.trim()),
+                }(_message.content.trim()),
                 style: TextStyle(color: Colors.white)),
             padding: EdgeInsets.all(12.0),
             margin: EdgeInsets.only(bottom: 8.0, left: 8.0, right: 8.0),
@@ -185,7 +197,8 @@ class _ChatPage extends State<ChatPage> {
                                       : 'Chat got disconnected',
                               hintStyle: const TextStyle(color: Colors.black),
                             ),
-                            enabled: isConnected,
+                            // enabled: isConnected,
+                            enabled: true,
                           ),
                         ),
                       ),
@@ -206,6 +219,20 @@ class _ChatPage extends State<ChatPage> {
               ],
             ),
           ),
+          Align(
+            alignment: Alignment.topRight,
+            child: Container(
+              child: Icon(Icons.visibility),
+              margin: EdgeInsets.only(right: 5.w, top: 2.h),
+              height: 35.sp,
+              width: 35.sp,
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(10),
+              ),
+              // color: Colors.white,
+            ),
+          )
         ],
       ),
     );
@@ -242,9 +269,9 @@ class _ChatPage extends State<ChatPage> {
     if (~index != 0) {
       setState(() {
         messages.add(
-          _Message(
-            1,
-            backspacesCounter > 0
+          Message(
+            whom: 1,
+            content: backspacesCounter > 0
                 ? _messageBuffer.substring(
                     0, _messageBuffer.length - backspacesCounter)
                 : _messageBuffer + dataString.substring(0, index),
@@ -270,7 +297,7 @@ class _ChatPage extends State<ChatPage> {
         await connection!.output.allSent;
 
         setState(() {
-          messages.add(_Message(clientID, text));
+          messages.add(Message(whom: clientID, content: text));
         });
 
         Future.delayed(Duration(milliseconds: 333)).then((_) {

@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bluetooth_serial/flutter_bluetooth_serial.dart';
 import 'package:kronos_encrypted_chat/chat_page.dart';
 import 'package:kronos_encrypted_chat/discovery_page.dart';
+import 'package:kronos_encrypted_chat/helper/toggle_switch_list_tiles%20.dart';
 import 'package:kronos_encrypted_chat/select_bonded_page_device.dart';
 import 'package:sizer/sizer.dart';
 
@@ -11,7 +12,7 @@ import 'package:sizer/sizer.dart';
 
 class MainPage extends StatefulWidget {
   @override
-  _MainPage createState() => new _MainPage();
+  _MainPage createState() => _MainPage();
 }
 
 class _MainPage extends State<MainPage> {
@@ -82,6 +83,7 @@ class _MainPage extends State<MainPage> {
     super.dispose();
   }
 
+  int _selectedSwitch = 0; // Index of the currently selected switch
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -269,6 +271,29 @@ class _MainPage extends State<MainPage> {
                 //     }
                 //   },
                 // ),
+                // ToggleSwitchListTiles(),
+                SwitchListTile(
+                  title: Text(
+                    'Cipher with Vigenère',
+                    style: TextStyle(color: Colors.white),
+                  ),
+                  value: _selectedSwitch == 0,
+                  onChanged: (value) {
+                    setState(() {
+                      _selectedSwitch = 0;
+                    });
+                  },
+                ),
+                SwitchListTile(
+                  title: const Text('Cipher with Ceaser',
+                      style: TextStyle(color: Colors.white)),
+                  value: _selectedSwitch == 1,
+                  onChanged: (value) {
+                    setState(() {
+                      _selectedSwitch = 1;
+                    });
+                  },
+                ),
                 ListTile(
                   title: ElevatedButton(
                       child: const Text('Explore discovered devices'),
