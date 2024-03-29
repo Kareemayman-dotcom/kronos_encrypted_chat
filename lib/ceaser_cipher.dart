@@ -1,50 +1,34 @@
 class CaesarCipher {
-  int _shift;
+  int shift;
 
-  CaesarCipher(this._shift);
+  CaesarCipher(this.shift);
 
-  String encrypt(String plainText) {
-    String result = '';
-
-    for (int i = 0; i < plainText.length; i++) {
-      var char = plainText.codeUnitAt(i);
-
-      // Handle uppercase letters
+  // Function to encrypt a string using Caesar Cipher
+  String encrypt(String text) {
+    return String.fromCharCodes(text.runes.map((char) {
       if (char >= 'A'.codeUnitAt(0) && char <= 'Z'.codeUnitAt(0)) {
-        result += String.fromCharCode(
-            ((char - 'A'.codeUnitAt(0) + _shift) % 26) + 'A'.codeUnitAt(0));
-
-        // Handle lowercase letters
+        return ((char - 'A'.codeUnitAt(0) + shift) % 26) + 'A'.codeUnitAt(0);
       } else if (char >= 'a'.codeUnitAt(0) && char <= 'z'.codeUnitAt(0)) {
-        result += String.fromCharCode(
-            ((char - 'a'.codeUnitAt(0) + _shift) % 26) + 'a'.codeUnitAt(0));
-
-        // Preserve other characters
+        return ((char - 'a'.codeUnitAt(0) + shift) % 26) + 'a'.codeUnitAt(0);
       } else {
-        result += plainText[i];
+        return char;
       }
-    }
-
-    return result;
+    }));
   }
 
-  String decrypt(String cipherText) {
-    String result = '';
-
-    for (int i = 0; i < cipherText.length; i++) {
-      var char = cipherText.codeUnitAt(i);
-
+  // Function to decrypt a string using Caesar Cipher
+  String decrypt(String text) {
+    // Similar logic to encrypt, but subtract the shift instead
+    return String.fromCharCodes(text.runes.map((char) {
       if (char >= 'A'.codeUnitAt(0) && char <= 'Z'.codeUnitAt(0)) {
-        result += String.fromCharCode(
-            ((char - 'A'.codeUnitAt(0) - _shift) % 26) + 'A'.codeUnitAt(0));
+        return ((char - 'A'.codeUnitAt(0) - shift + 26) % 26) +
+            'A'.codeUnitAt(0); // Add 26 to handle negative shifts
       } else if (char >= 'a'.codeUnitAt(0) && char <= 'z'.codeUnitAt(0)) {
-        result += String.fromCharCode(
-            ((char - 'a'.codeUnitAt(0) - _shift) % 26) + 'a'.codeUnitAt(0));
+        return ((char - 'a'.codeUnitAt(0) - shift + 26) % 26) +
+            'a'.codeUnitAt(0); // Add 26 to handle negative shifts
       } else {
-        result += cipherText[i];
+        return char;
       }
-    }
-
-    return result;
+    }));
   }
 }
