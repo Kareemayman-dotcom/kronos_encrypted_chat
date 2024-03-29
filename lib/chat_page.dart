@@ -325,6 +325,7 @@ class _ChatPage extends State<ChatPage> {
         });
       } catch (e) {
         // Ignore error, but notify state
+        print("he text got broken in envryption");
         setState(() {});
       }
     }
