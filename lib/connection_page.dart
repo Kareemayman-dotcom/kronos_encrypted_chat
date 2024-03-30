@@ -272,28 +272,6 @@ class _MainPage extends State<MainPage> {
                 //   },
                 // ),
                 // ToggleSwitchListTiles(),
-                SwitchListTile(
-                  title: Text(
-                    'Cipher with Vigenère',
-                    style: TextStyle(color: Colors.white),
-                  ),
-                  value: _selectedSwitch == 0,
-                  onChanged: (value) {
-                    setState(() {
-                      _selectedSwitch = 0;
-                    });
-                  },
-                ),
-                SwitchListTile(
-                  title: const Text('Cipher with Ceaser',
-                      style: TextStyle(color: Colors.white)),
-                  value: _selectedSwitch == 1,
-                  onChanged: (value) {
-                    setState(() {
-                      _selectedSwitch = 1;
-                    });
-                  },
-                ),
                 ListTile(
                   title: ElevatedButton(
                       child: const Text('Explore discovered devices'),

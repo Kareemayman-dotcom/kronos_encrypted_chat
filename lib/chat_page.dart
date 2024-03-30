@@ -38,7 +38,7 @@ class _ChatPage extends State<ChatPage> {
     // int result = (pow(int.parse(messages[1].content), randomNum) % 17).toInt();
     int result = int.parse(messages[1].content) * randomNum;
     print(" this is anas first message${int.parse(messages[1].content)}");
-    finalComKey = result > 26 ? 26 : result;
+    finalComKey = result >= 26 ? 25 : result;
     cc = CaesarCipher(finalComKey);
   }
 
@@ -50,12 +50,13 @@ class _ChatPage extends State<ChatPage> {
   bool firstReceive = true;
   late int randomNum;
   late int finalComKey;
+  bool cyphered = true;
   @override
   void initState() {
     super.initState();
     BluetoothConnection.toAddress(widget.server.address).then((_connection) {
       print('Connected to the device');
-      randomNum = Random().nextInt(11);
+      randomNum = Random().nextInt(9) + 2;
       connection = _connection;
       sendresult();
       setState(() {
@@ -126,7 +127,9 @@ class _ChatPage extends State<ChatPage> {
             child: Text(
                 (text) {
                   return text == '/shrug' ? '¯\\_(ツ)_/¯' : text;
-                }(_message.content.trim()),
+                }(cyphered == true
+                    ? _message.Ciphered.trim()
+                    : _message.content.trim()),
                 style: const TextStyle(color: Colors.white)),
           ),
         ],
@@ -195,7 +198,7 @@ class _ChatPage extends State<ChatPage> {
                           decoration: BoxDecoration(
                               color: Colors.white70,
                               borderRadius:
-                                  BorderRadiusDirectional.circular(10)),
+                                  BorderRadiusDirectional.circular(25)),
                           margin: const EdgeInsets.only(left: 16.0),
                           child: TextField(
                             style: const TextStyle(fontSize: 15.0),
@@ -208,8 +211,8 @@ class _ChatPage extends State<ChatPage> {
                                       : 'Chat got disconnected',
                               hintStyle: const TextStyle(color: Colors.black),
                             ),
-                            // enabled: isConnected,
-                            enabled: true,
+                            enabled: isConnected,
+                            // enabled: true,
                           ),
                         ),
                       ),
@@ -232,16 +235,24 @@ class _ChatPage extends State<ChatPage> {
           ),
           Align(
             alignment: Alignment.topRight,
-            child: Container(
-              margin: EdgeInsets.only(right: 5.w, top: 2.h),
-              height: 35.sp,
-              width: 35.sp,
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(10),
+            child: GestureDetector(
+              onTap: () {
+                setState(() {
+                  cyphered = !cyphered;
+                });
+              },
+              child: Container(
+                margin: EdgeInsets.only(right: 5.w, top: 2.h),
+                height: 35.sp,
+                width: 35.sp,
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(15),
+                ),
+                child: Icon(
+                    cyphered == true ? Icons.visibility_off : Icons.visibility),
+                // color: Colors.white,
               ),
-              child: const Icon(Icons.visibility),
-              // color: Colors.white,
             ),
           )
         ],
