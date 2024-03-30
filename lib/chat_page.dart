@@ -35,8 +35,10 @@ class _ChatPage extends State<ChatPage> {
   final TextEditingController textEditingController = TextEditingController();
   final ScrollController listScrollController = ScrollController();
   void getKey() {
-    int result = (pow(int.parse(messages[1].Ciphered), randomNum) % 17).toInt();
-    finalComKey = result;
+    // int result = (pow(int.parse(messages[1].content), randomNum) % 17).toInt();
+    int result = int.parse(messages[1].content) * randomNum;
+    print(" this is anas first message${int.parse(messages[1].content)}");
+    finalComKey = result > 26 ? 26 : result;
     cc = CaesarCipher(finalComKey);
   }
 
@@ -44,7 +46,8 @@ class _ChatPage extends State<ChatPage> {
   bool get isConnected => (connection?.isConnected ?? false);
   late CaesarCipher cc;
   bool isDisconnecting = false;
-
+  bool firstSend = true;
+  bool firstReceive = true;
   late int randomNum;
   late int finalComKey;
   @override
@@ -52,7 +55,7 @@ class _ChatPage extends State<ChatPage> {
     super.initState();
     BluetoothConnection.toAddress(widget.server.address).then((_connection) {
       print('Connected to the device');
-      randomNum = Random().nextInt(10);
+      randomNum = Random().nextInt(11);
       connection = _connection;
       sendresult();
       setState(() {
@@ -83,7 +86,8 @@ class _ChatPage extends State<ChatPage> {
   }
 
   int sharedkeygen() {
-    int result = (pow(3, randomNum) % 17).toInt();
+    // int result = (((pow(3, randomNum)) % 17)).toInt();
+    int result = randomNum;
     return result;
   }
 
@@ -273,60 +277,121 @@ class _ChatPage extends State<ChatPage> {
     // Create message if there is new line character
     String dataString = String.fromCharCodes(buffer);
     int index = buffer.indexOf(13);
-    if (~index != 0) {
-      setState(() {
-        messages.add(
-          Message(
+    if (firstReceive) {
+      if (~index != 0) {
+        setState(() {
+          messages.add(
+            Message(
               Ciphered: backspacesCounter > 0
                   ? _messageBuffer.substring(
                       0, _messageBuffer.length - backspacesCounter)
                   : _messageBuffer + dataString.substring(0, index),
               whom: 1,
-              content: cc.decrypt(
-                backspacesCounter > 0
+              content: backspacesCounter > 0
+                  ? _messageBuffer.substring(
+                      0, _messageBuffer.length - backspacesCounter)
+                  : _messageBuffer + dataString.substring(0, index),
+            ),
+          );
+          _messageBuffer = dataString.substring(index);
+        });
+      } else {
+        _messageBuffer = (backspacesCounter > 0
+            ? _messageBuffer.substring(
+                0, _messageBuffer.length - backspacesCounter)
+            : _messageBuffer + dataString);
+      }
+      firstReceive = false;
+      getKey();
+
+      print("this is the final key$finalComKey");
+      print("This is the random $randomNum");
+    } else {
+      if (~index != 0) {
+        setState(() {
+          messages.add(
+            Message(
+                Ciphered: backspacesCounter > 0
                     ? _messageBuffer.substring(
                         0, _messageBuffer.length - backspacesCounter)
                     : _messageBuffer + dataString.substring(0, index),
-              )),
-        );
-        _messageBuffer = dataString.substring(index);
-      });
-    } else {
-      _messageBuffer = (backspacesCounter > 0
-          ? _messageBuffer.substring(
-              0, _messageBuffer.length - backspacesCounter)
-          : _messageBuffer + dataString);
+                whom: 1,
+                content: cc.decrypt(
+                  backspacesCounter > 0
+                      ? _messageBuffer.substring(
+                          0, _messageBuffer.length - backspacesCounter)
+                      : _messageBuffer + dataString.substring(0, index),
+                )),
+          );
+          _messageBuffer = dataString.substring(index);
+        });
+      } else {
+        _messageBuffer = (backspacesCounter > 0
+            ? _messageBuffer.substring(
+                0, _messageBuffer.length - backspacesCounter)
+            : _messageBuffer + dataString);
+      }
     }
   }
 
   void _sendMessage(String text) async {
     text = text.trim();
     textEditingController.clear();
+    if (firstSend) {
+      if (text.length > 0) {
+        try {
+          connection!.output
+              .add(Uint8List.fromList(utf8.encode(text + "\r\n")));
+          await connection!.output.allSent;
 
-    if (text.length > 0) {
-      try {
-        connection!.output
-            .add(Uint8List.fromList(utf8.encode(cc.encrypt(text) + "\r\n")));
-        await connection!.output.allSent;
+          setState(() {
+            messages.add(Message(
+              content: text,
+              whom: clientID,
+              Ciphered: text,
+            ));
+          });
 
-        setState(() {
-          messages.add(Message(
-            content: text,
-            whom: clientID,
-            Ciphered: cc.encrypt(text),
-          ));
-        });
+          Future.delayed(const Duration(milliseconds: 333)).then((_) {
+            listScrollController.animateTo(
+                listScrollController.position.maxScrollExtent,
+                duration: const Duration(milliseconds: 333),
+                curve: Curves.easeOut);
+          });
+        } catch (e) {
+          // Ignore error, but notify state
+          print("he text got broken in envryption");
+          setState(() {});
+        } finally {
+          firstSend = false;
+        }
+      }
+    } else {
+      if (text.length > 0) {
+        try {
+          connection!.output
+              .add(Uint8List.fromList(utf8.encode(cc.encrypt(text) + "\r\n")));
+          await connection!.output.allSent;
+          print(cc.encrypt(text));
+          setState(() {
+            messages.add(Message(
+              content: text,
+              whom: clientID,
+              Ciphered: cc.encrypt(text),
+            ));
+          });
 
-        Future.delayed(const Duration(milliseconds: 333)).then((_) {
-          listScrollController.animateTo(
-              listScrollController.position.maxScrollExtent,
-              duration: const Duration(milliseconds: 333),
-              curve: Curves.easeOut);
-        });
-      } catch (e) {
-        // Ignore error, but notify state
-        print("he text got broken in envryption");
-        setState(() {});
+          Future.delayed(const Duration(milliseconds: 333)).then((_) {
+            listScrollController.animateTo(
+                listScrollController.position.maxScrollExtent,
+                duration: const Duration(milliseconds: 333),
+                curve: Curves.easeOut);
+          });
+        } catch (e) {
+          // Ignore error, but notify state
+          print("he text got broken in envryption");
+          setState(() {});
+        }
       }
     }
   }
