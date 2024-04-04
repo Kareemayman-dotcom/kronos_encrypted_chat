@@ -43,7 +43,7 @@ class _ChatPage extends State<ChatPage> {
     switch (widget.chatMode) {
       case 1:
         int result = int.parse(messages[3].content) * randomNum;
-    print(" this is anas first message${int.parse(messages[2].content)}");
+    print(" this is anas first message${int.parse(messages[3].content)}");
     finalComKey = "${result >= 26 ? 25 : result}";
     ceaserCipher = CaesarCipher(int.parse(finalComKey));
         break;
@@ -106,17 +106,17 @@ class _ChatPage extends State<ChatPage> {
       print('Connected to the device');
       print(widget.chatMode == 1?"ceaser mode":widget.chatMode == 2?"vigenere mode":"rail fence mode");
       connection = _connection;
-      randomNum = Random().nextInt(9) + 2;
+      randomNum = Random().nextInt(11) + 1;
       switch (widget.chatMode) {
         case 1:
-            _sendMessage(ceaserCode);
+            _sendMessage(ceaserCode+"\n\r");
 
           break;
         case 2:
             _sendMessage(vigenereCode);
           break;
         case 3:
-            _sendMessage(railFenceCode);
+            _sendMessage(railFenceCode+"\n\r");
           break;
         default:
       }
