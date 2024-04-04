@@ -35,14 +35,14 @@ class _ChatPage extends State<ChatPage> {
 
   List<Message> messages = List<Message>.empty(growable: true);
   String _messageBuffer = '';
-
+  bool gotNumber = false;
   final TextEditingController textEditingController = TextEditingController();
   final ScrollController listScrollController = ScrollController();
   void getKey() {
     // int result = (pow(int.parse(messages[1].content), randomNum) % 17).toInt();
     switch (widget.chatMode) {
       case 1:
-        int result = int.parse(messages[2].content) * randomNum;
+        int result = int.parse(messages[3].content) * randomNum;
     print(" this is anas first message${int.parse(messages[2].content)}");
     finalComKey = "${result >= 26 ? 25 : result}";
     ceaserCipher = CaesarCipher(int.parse(finalComKey));
@@ -76,7 +76,7 @@ class _ChatPage extends State<ChatPage> {
         });
         break;
       case 3:
-        int result = int.parse(messages[2].content) * randomNum;
+        int result = int.parse(messages[3].content) * randomNum;
     print(" this is anas first message${int.parse(messages[2].content)}");
     finalComKey = "${result >= 6 ? 5 : result}";
     railFenceCipher = RailFenceCipher( rails:int.parse(finalComKey));
@@ -90,9 +90,12 @@ class _ChatPage extends State<ChatPage> {
   late CaesarCipher ceaserCipher;
   late VigenereCipher vigenereCipher;
   late RailFenceCipher  railFenceCipher;
+  String ceaserCode = "em\$64";
+  String vigenereCode = "em\$128";
+  String railFenceCode = "em\$256";
   bool isDisconnecting = false;
   bool firstSend = true;
-  bool firstReceive = true;
+  bool readyToCommunicate = false;
   late int randomNum;
   late String finalComKey;
   bool cyphered = true;
@@ -106,18 +109,18 @@ class _ChatPage extends State<ChatPage> {
       randomNum = Random().nextInt(9) + 2;
       switch (widget.chatMode) {
         case 1:
-            _sendMessage("em\$64");
+            _sendMessage(ceaserCode);
+
           break;
         case 2:
-            _sendMessage("em\$128");
+            _sendMessage(vigenereCode);
           break;
         case 3:
-            _sendMessage("em\$256");
+            _sendMessage(railFenceCode);
           break;
         default:
       }
       
-      sendresult(widget.chatMode);
       setState(() {
         isConnecting = false;
         isDisconnecting = false;
@@ -350,20 +353,21 @@ class _ChatPage extends State<ChatPage> {
     // Create message if there is new line character
     String dataString = String.fromCharCodes(buffer);
     int index = buffer.indexOf(13);
-    if (firstReceive) {
+    String message = backspacesCounter > 0
+                  ? _messageBuffer.substring(
+                      0, _messageBuffer.length - backspacesCounter)
+                  : _messageBuffer + dataString.substring(0, index);
+    if(!readyToCommunicate){
+if (message==ceaserCode ||message==vigenereCode||message==railFenceCode ||(int.parse(message)>=0 &&int.parse(message)<=10)) {
+      
+
       if (~index != 0) {
         setState(() {
           messages.add(
             Message(
-              Ciphered: backspacesCounter > 0
-                  ? _messageBuffer.substring(
-                      0, _messageBuffer.length - backspacesCounter)
-                  : _messageBuffer + dataString.substring(0, index),
+              Ciphered:message,
               whom: 1,
-              content: backspacesCounter > 0
-                  ? _messageBuffer.substring(
-                      0, _messageBuffer.length - backspacesCounter)
-                  : _messageBuffer + dataString.substring(0, index),
+              content: message,
             ),
           );
           _messageBuffer = dataString.substring(index);
@@ -374,14 +378,28 @@ class _ChatPage extends State<ChatPage> {
                 0, _messageBuffer.length - backspacesCounter)
             : _messageBuffer + dataString);
       }
-      firstReceive = false;
-      getKey();
-
+      }
+      if(int.tryParse(message) !=null){
+        gotNumber = true;
+      }
+      if(gotNumber == false){
+        setState(() {
+            sendresult(widget.chatMode);
+        
+      });
+  
+    }
+      if(gotNumber){
+              
+        getKey();
+      readyToCommunicate = true;
       print("this is the final key$finalComKey");
       print("This is the random $randomNum");
+      }
     } else {
       if (~index != 0) {
         setState(() {
+          
           messages.add(
             Message(
                 Ciphered: backspacesCounter > 0
@@ -389,18 +407,7 @@ class _ChatPage extends State<ChatPage> {
                         0, _messageBuffer.length - backspacesCounter)
                     : _messageBuffer + dataString.substring(0, index),
                 whom: 1,
-                content: widget.chatMode == 1?ceaserCipher.decrypt(
-                backspacesCounter > 0
-                      ? _messageBuffer.substring(
-                          0, _messageBuffer.length - backspacesCounter)
-                      : _messageBuffer + dataString.substring(0, index),
-                ):widget.chatMode ==2?vigenereCipher.decrypt( backspacesCounter > 0
-                      ? _messageBuffer.substring(
-                          0, _messageBuffer.length - backspacesCounter)
-                      : _messageBuffer + dataString.substring(0, index), _vigenerekaycontroller.text):railFenceCipher.decrypt( backspacesCounter > 0
-                      ? _messageBuffer.substring(
-                          0, _messageBuffer.length - backspacesCounter)
-                      : _messageBuffer + dataString.substring(0, index),)),
+                content: widget.chatMode == 1?ceaserCipher.decrypt(message):widget.chatMode ==2?vigenereCipher.decrypt( message, _vigenerekaycontroller.text):railFenceCipher.decrypt(message)),
           );
           _messageBuffer = dataString.substring(index);
         });
@@ -410,13 +417,14 @@ class _ChatPage extends State<ChatPage> {
                 0, _messageBuffer.length - backspacesCounter)
             : _messageBuffer + dataString);
       }
+
     }
   }
 
   void _sendMessage(String text) async {
     text = text.trim();
     textEditingController.clear();
-    if (firstSend) {
+    if (!readyToCommunicate) {
       if (text.length > 0) {
         try {
           connection!.output
@@ -449,7 +457,7 @@ class _ChatPage extends State<ChatPage> {
       if (text.length > 0) {
         try {
           connection!.output
-              .add(Uint8List.fromList(utf8.encode(widget.chatMode == 1?ceaserCipher.encrypt(text):widget.chatMode ==2 ?vigenereCipher.encrypt(text, _vigenerekaycontroller.text):railFenceCipher.encrypt(text) + "\r\n")));
+              .add(Uint8List.fromList(utf8.encode(widget.chatMode == 1?ceaserCipher.encrypt(text)+"\r\n":widget.chatMode ==2 ?vigenereCipher.encrypt(text, _vigenerekaycontroller.text)+"\r\n":railFenceCipher.encrypt(text) + "\r\n")));
           await connection!.output.allSent;
           print(widget.chatMode == 1?ceaserCipher.encrypt(text):widget.chatMode ==2?vigenereCipher.encrypt(text, _vigenerekaycontroller.text):railFenceCipher.encrypt(text));
           setState(() {
