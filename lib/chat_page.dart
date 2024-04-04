@@ -5,17 +5,19 @@ import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_bluetooth_serial/flutter_bluetooth_serial.dart';
-import 'package:kronos_encrypted_chat/ceaser_cipher.dart';
+import 'package:kronos_encrypted_chat/helper/ceaser_cipher.dart';
+import 'package:kronos_encrypted_chat/helper/rail_fence.dart';
+import 'package:kronos_encrypted_chat/helper/vigenere_cipher.dart';
 import 'package:kronos_encrypted_chat/message_model.dart';
 import 'package:sizer/sizer.dart';
 
 class ChatPage extends StatefulWidget {
   final BluetoothDevice server;
-
-  const ChatPage({required this.server});
+  final int chatMode;
+  const ChatPage({required this.server, required this.chatMode});
 
   @override
-  _ChatPage createState() => new _ChatPage();
+  _ChatPage createState() =>  _ChatPage();
 }
 
 // class _Message {
@@ -26,6 +28,8 @@ class ChatPage extends StatefulWidget {
 // }
 
 class _ChatPage extends State<ChatPage> {
+    TextEditingController _vigenerekaycontroller = TextEditingController();
+
   static final clientID = 0;
   BluetoothConnection? connection;
 
@@ -36,29 +40,84 @@ class _ChatPage extends State<ChatPage> {
   final ScrollController listScrollController = ScrollController();
   void getKey() {
     // int result = (pow(int.parse(messages[1].content), randomNum) % 17).toInt();
-    int result = int.parse(messages[1].content) * randomNum;
-    print(" this is anas first message${int.parse(messages[1].content)}");
-    finalComKey = result >= 26 ? 25 : result;
-    cc = CaesarCipher(finalComKey);
+    switch (widget.chatMode) {
+      case 1:
+        int result = int.parse(messages[2].content) * randomNum;
+    print(" this is anas first message${int.parse(messages[2].content)}");
+    finalComKey = "${result >= 26 ? 25 : result}";
+    ceaserCipher = CaesarCipher(int.parse(finalComKey));
+        break;
+      case 2:
+        showDialog(
+        context: context,
+        builder: (context) {
+          return AlertDialog(
+            title: Text('Enter some text'),
+            content: TextField(
+              controller: _vigenerekaycontroller,
+              decoration: InputDecoration(hintText: "Type here"),
+            ),
+            actions: <Widget>[
+              TextButton(
+                child: Text('CANCEL'),
+                onPressed: () {
+                  Navigator.pop(context);
+                },
+              ),
+              TextButton(
+                child: Text('OK'),
+                onPressed: () {
+                  print("Text entered: ${_vigenerekaycontroller.text}");
+                  Navigator.pop(context);
+                },
+              ),
+            ],
+          );
+        });
+        break;
+      case 3:
+        int result = int.parse(messages[2].content) * randomNum;
+    print(" this is anas first message${int.parse(messages[2].content)}");
+    finalComKey = "${result >= 6 ? 5 : result}";
+    railFenceCipher = RailFenceCipher( rails:int.parse(finalComKey));
+        break;
+      default:
+    }
   }
 
   bool isConnecting = true;
   bool get isConnected => (connection?.isConnected ?? false);
-  late CaesarCipher cc;
+  late CaesarCipher ceaserCipher;
+  late VigenereCipher vigenereCipher;
+  late RailFenceCipher  railFenceCipher;
   bool isDisconnecting = false;
   bool firstSend = true;
   bool firstReceive = true;
   late int randomNum;
-  late int finalComKey;
+  late String finalComKey;
   bool cyphered = true;
   @override
   void initState() {
     super.initState();
     BluetoothConnection.toAddress(widget.server.address).then((_connection) {
       print('Connected to the device');
-      randomNum = Random().nextInt(9) + 2;
+      print(widget.chatMode == 1?"ceaser mode":widget.chatMode == 2?"vigenere mode":"rail fence mode");
       connection = _connection;
-      sendresult();
+      randomNum = Random().nextInt(9) + 2;
+      switch (widget.chatMode) {
+        case 1:
+            _sendMessage("em\$64");
+          break;
+        case 2:
+            _sendMessage("em\$128");
+          break;
+        case 3:
+            _sendMessage("em\$256");
+          break;
+        default:
+      }
+      
+      sendresult(widget.chatMode);
       setState(() {
         isConnecting = false;
         isDisconnecting = false;
@@ -92,7 +151,7 @@ class _ChatPage extends State<ChatPage> {
     return result;
   }
 
-  void sendresult() {
+  void sendresult(int chatmode) {
     _sendMessage("${sharedkeygen()}");
   }
 
@@ -121,9 +180,10 @@ class _ChatPage extends State<ChatPage> {
             margin: const EdgeInsets.only(bottom: 8.0, left: 8.0, right: 8.0),
             width: 222.0,
             decoration: BoxDecoration(
-                color:
-                    _message.whom == clientID ? Colors.blueAccent : Colors.grey,
-                borderRadius: BorderRadius.circular(7.0)),
+                color: _message.whom == clientID
+                    ? Color.fromARGB(255, 109, 0, 102)
+                    : Colors.grey,
+                borderRadius: BorderRadius.circular(15)),
             child: Text(
                 (text) {
                   return text == '/shrug' ? '¯\\_(ツ)_/¯' : text;
@@ -205,6 +265,8 @@ class _ChatPage extends State<ChatPage> {
                             controller: textEditingController,
                             decoration: InputDecoration.collapsed(
                               hintText: isConnecting
+                              // hintText: false
+
                                   ? 'Wait until connected...'
                                   : isConnected
                                       ? 'Type your message...'
@@ -327,12 +389,18 @@ class _ChatPage extends State<ChatPage> {
                         0, _messageBuffer.length - backspacesCounter)
                     : _messageBuffer + dataString.substring(0, index),
                 whom: 1,
-                content: cc.decrypt(
-                  backspacesCounter > 0
+                content: widget.chatMode == 1?ceaserCipher.decrypt(
+                backspacesCounter > 0
                       ? _messageBuffer.substring(
                           0, _messageBuffer.length - backspacesCounter)
                       : _messageBuffer + dataString.substring(0, index),
-                )),
+                ):widget.chatMode ==2?vigenereCipher.decrypt( backspacesCounter > 0
+                      ? _messageBuffer.substring(
+                          0, _messageBuffer.length - backspacesCounter)
+                      : _messageBuffer + dataString.substring(0, index), _vigenerekaycontroller.text):railFenceCipher.decrypt( backspacesCounter > 0
+                      ? _messageBuffer.substring(
+                          0, _messageBuffer.length - backspacesCounter)
+                      : _messageBuffer + dataString.substring(0, index),)),
           );
           _messageBuffer = dataString.substring(index);
         });
@@ -381,14 +449,14 @@ class _ChatPage extends State<ChatPage> {
       if (text.length > 0) {
         try {
           connection!.output
-              .add(Uint8List.fromList(utf8.encode(cc.encrypt(text) + "\r\n")));
+              .add(Uint8List.fromList(utf8.encode(widget.chatMode == 1?ceaserCipher.encrypt(text):widget.chatMode ==2 ?vigenereCipher.encrypt(text, _vigenerekaycontroller.text):railFenceCipher.encrypt(text) + "\r\n")));
           await connection!.output.allSent;
-          print(cc.encrypt(text));
+          print(widget.chatMode == 1?ceaserCipher.encrypt(text):widget.chatMode ==2?vigenereCipher.encrypt(text, _vigenerekaycontroller.text):railFenceCipher.encrypt(text));
           setState(() {
             messages.add(Message(
               content: text,
               whom: clientID,
-              Ciphered: cc.encrypt(text),
+              Ciphered: widget.chatMode == 1?ceaserCipher.encrypt(text):widget.chatMode ==2 ? vigenereCipher.encrypt(text,_vigenerekaycontroller.text):railFenceCipher.encrypt(text),
             ));
           });
 

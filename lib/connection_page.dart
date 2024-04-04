@@ -4,7 +4,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bluetooth_serial/flutter_bluetooth_serial.dart';
 import 'package:kronos_encrypted_chat/chat_page.dart';
 import 'package:kronos_encrypted_chat/discovery_page.dart';
-import 'package:kronos_encrypted_chat/helper/toggle_switch_list_tiles%20.dart';
 import 'package:kronos_encrypted_chat/select_bonded_page_device.dart';
 import 'package:sizer/sizer.dart';
 
@@ -83,7 +82,7 @@ class _MainPage extends State<MainPage> {
     super.dispose();
   }
 
-  int _selectedSwitch = 0; // Index of the currently selected switch
+  int _selectedMode = 1; 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -242,36 +241,37 @@ class _MainPage extends State<MainPage> {
                 Divider(),
                 ListTile(
                     title: const Text(
-                  'Devices discovery and connection',
+                  'Connection and chat security',
                   style: TextStyle(color: Colors.white),
                 )),
-                // SwitchListTile(
-                //   title: const Text(
-                //     'Auto-try specific pin when pairing',
-                //     style: TextStyle(color: Colors.white),
-                //   ),
-                //   subtitle: const Text('Pin 1234'),
-                //   value: _autoAcceptPairingRequests,
-                //   onChanged: (bool value) {
-                //     setState(() {
-                //       _autoAcceptPairingRequests = value;
-                //     });
-                //     if (value) {
-                //       FlutterBluetoothSerial.instance.setPairingRequestHandler(
-                //           (BluetoothPairingRequest request) {
-                //         print("Trying to auto-pair with Pin 1234");
-                //         if (request.pairingVariant == PairingVariant.Pin) {
-                //           return Future.value("1234");
-                //         }
-                //         return Future.value(null);
-                //       });
-                //     } else {
-                //       FlutterBluetoothSerial.instance
-                //           .setPairingRequestHandler(null);
-                //     }
-                //   },
-                // ),
-                // ToggleSwitchListTiles(),
+                SwitchListTile(
+                  
+          title: const Text('Ceaser Cipher',style: TextStyle(color: Colors.white)),
+          value: _selectedMode == 1,
+          onChanged: (value) {
+            setState(() {
+              _selectedMode = value ? 1 : 0; 
+            });
+          },
+        ),
+        SwitchListTile(
+          
+          title: const Text('Vigenère Cipher',style: TextStyle(color: Colors.white)),
+          value: _selectedMode == 2,
+          onChanged: (value) {
+            setState(() {
+              _selectedMode = value ? 2 : 0; 
+            });
+          },
+        ),
+        SwitchListTile(
+          
+          title: const Text('Rail Fence Cipher',style: TextStyle(color: Colors.white)),
+          value: _selectedMode == 3,
+          onChanged: (value) {
+            setState(() {
+              _selectedMode = value ? 3 : 0; 
+            });}),
                 ListTile(
                   title: ElevatedButton(
                       child: const Text('Explore discovered devices'),
@@ -383,7 +383,7 @@ class _MainPage extends State<MainPage> {
     Navigator.of(context).push(
       MaterialPageRoute(
         builder: (context) {
-          return ChatPage(server: server);
+          return ChatPage(server: server, chatMode: _selectedMode,);
         },
       ),
     );
